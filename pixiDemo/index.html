@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <script src="js/pixi.min.js"></script>
+    <script>
+		var app = new PIXI.Application(480,700);
+        document.body.appendChild(app.view);
+        var pause = new PIXI.Sprite.fromImage("res/game_pause_nor.png");
+        var start = new PIXI.Sprite.fromImage("res/game_resume_nor.png");
+        var reStart = new PIXI.Sprite.fromImage("res/game_again.png");
+   		var bulletList = [];
+   		var life = 100;
+   		var score = 0;
+   		var isStart = true;
+   		var scoreText = new PIXI.Text("得分：0");
+   		var lifeText = new PIXI.Text("生命值：100");
+        var bg = new PIXI.Sprite.fromImage("res/background.png");
+        var plane = new PIXI.Sprite.fromImage("res/hero1.png");
+        app.stage.addChild(bg);
+        app.stage.addChild(scoreText);
+        app.stage.addChild(lifeText);
+        app.stage.addChild(pause);
+        app.stage.addChild(start);
+        app.stage.addChild(plane);
+        app.stage.addChild(reStart);
+        reStart.visible = false;
+		reStart.x = 240;
+		reStart.y = 300;
+		reStart.anchor.set(0.5,0.5);
+		reStart.interactive = true;
+		reStart.on("click",reStartGame);
+        start.x = 400;
+        pause.x = 400;
+        start.visible = false;
+        start.interactive = true;
+        pause.interactive = true;
+        pause.on("click",pauseGame);
+        start.on("click",startGame);
+        bg.y = -100;
+        lifeText.y = 600;
+        plane.x = 240;
+        plane.y = 540;
+        plane.anchor.set(0.5,0.5);
+        bg.interactive = true;
+        bg.on("mousemove",movePlane);
+        app.ticker.add(animate);
+        function reStartGame(){
+        	reStart.visible = false;
+        	isStart = true;
+        	life = 100;
+        	score = 0;
+        	lifeText.text = "生命值：" + life;
+        	scoreText.text = "得分：" + score;
+        }
+        function pauseGame(){
+        	isStart = false;
+        	pause.visible = false;
+        	start.visible = true;
+        }
+		function startGame(){
+        	isStart = true;
+        	pause.visible = true;
+        	start.visible = false;
+        }
+        function animate(){
+        	if(isStart === true){
+        		addEnemy();
+	        	addBullet();
+	        	bulletMove();
+	        	moveEnemy();
+	        	bulletCrash();
+	        	planeCrash();
+        	}
+        	if(life <= 0){
+        		reStart.visible = true;
+        		isStart = false;
+        	}
+        }
+        var t = 0;
+        function addBullet(){
+        	if(t == 20){
+        		var bullet = new PIXI.Sprite.fromImage("res/bullet1.png");
+        		app.stage.addChild(bullet);
+        		bullet.anchor.set(0.5,0.5);
+        		bullet.x = plane.x;
+        		bullet.y = plane.y - 50;
+        		bulletList.push(bullet);
+        		t = 0;
+        	}
+        	t++;
+        }
+        function bulletMove(){
+        	var i;
+        	for(i = 0; i < bulletList.length;i++){
+        		bulletList[i].y -= 5;
+        		if(bulletList[i].y < -50){
+        			app.stage.removeChild(bulletList[i]);
+        			bulletList.splice(i,1);
+        		}
+        	}
+        }
+        function bgMove(){
+        	bg.y += 2;
+        	if(bg.y >= 0){
+        		bg.y = -100;
+        	}
+        }
+        function movePlane(event){
+        	var pos = event.data.getLocalPosition(app.stage);
+        	plane.x = pos.x;
+        	plane.y = pos.y;
+        }
+        var enemyList = [];
+		var ceFlag = 0;
+        function addEnemy(){
+        	if(ceFlag == 30){
+       			var enemy = new PIXI.Sprite.fromImage("res/enemy1.png");
+        		enemy.anchor.set(0.5,0.5);
+        		enemy.x = Math.random()*500;
+        		enemy.y = -50;
+        		app.stage.addChild(enemy);
+        		enemyList.push(enemy);
+        		ceFlag = 0;
+   			}
+   			ceFlag++;
+        }
+        function moveEnemy(){
+   			for(var j=enemyList.length-1;j>=0;j--){
+       			var enemy = enemyList[j];
+       			enemy.y += 3;
+       			if(enemy.y > 650){
+           			app.stage.removeChild(enemy);
+           			enemyList.splice(j,1);
+       			}
+   			}
+		}
+        function bulletCrash(){
+		    for(var k = 0; k < bulletList.length; k ++) {
+			    var bullet = bulletList[k];
+		        for(var l = 0; l < enemyList.length; l ++) {
+		            var enemy = enemyList[l];
+		            var pos = (bullet.x - enemy.x) * (bullet.x - enemy.x) + (bullet.y - enemy.y) * (bullet.y - enemy.y);
+		            if(pos < 60 * 60) {//碰撞
+		                app.stage.removeChild(enemy);
+           				enemyList.splice(l,1);
+           				app.stage.removeChild(bullet);
+           				bulletList.splice(k,1);
+           				score += 10;
+           				scoreText.text = "得分：" + score;
+		            }
+		        }
+		    }
+		}
+        function planeCrash(){
+		    for(var i = 0; i < enemyList.length; i++) {
+			    var enemy = enemyList[i];
+		        var pos = (enemy.x - plane.x) * (enemy.x - plane.x) + (enemy.y - plane.y) * (enemy.y - plane.y);
+		        if(pos < 60 * 60) {//碰撞
+		            app.stage.removeChild(enemy);
+           			enemyList.splice(i,1);
+           			life -= 10;
+           			lifeText.text = "生命值：" + life;
+		        }
+		    }
+		}
+    </script>
+</body>
+</html>
